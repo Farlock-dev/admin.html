@@ -24,10 +24,7 @@
             align-items: center;
             padding: 20px;
         }
-        .container {
-            max-width: 1000px;
-            width: 100%;
-        }
+        .container { max-width: 1000px; width: 100%; }
         .hidden { display: none !important; }
 
         /* Login */
@@ -337,10 +334,23 @@
             document.getElementById('txModal').classList.remove('hidden');
         }
 
-        function closeModal() { document.getElementById('txModal').classList.add('hidden'); selectedTx = null; }
+        function closeModal() {
+            document.getElementById('txModal').classList.add('hidden');
+            selectedTx = null;
+            // Reabilita os botões caso tenham sido desabilitados
+            const approveBtn = document.querySelector('.approve');
+            const rejectBtn = document.querySelector('.reject');
+            if (approveBtn) approveBtn.disabled = false;
+            if (rejectBtn) rejectBtn.disabled = false;
+        }
 
         async function processTx(action) {
             if (!selectedTx) return;
+            const approveBtn = document.querySelector('.approve');
+            const rejectBtn = document.querySelector('.reject');
+            // Desabilita os botões imediatamente para evitar múltiplos cliques
+            if (approveBtn) approveBtn.disabled = true;
+            if (rejectBtn) rejectBtn.disabled = true;
             try {
                 const res = await fetch(`${API_URL}/admin/approve`, {
                     method: 'POST',
@@ -352,10 +362,16 @@
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message);
-                document.getElementById('panelMsg').textContent = `Transação ${action === 'approved' ? 'aprovada' : 'rejeitada'}!`;
+                document.getElementById('panelMsg').textContent = 
+                    `Transação ${action === 'approved' ? 'aprovada' : 'rejeitada'}!`;
                 closeModal();
                 loadTransactions();
-            } catch (e) { alert('Erro: ' + e.message); }
+            } catch (e) {
+                alert('Erro: ' + e.message);
+                // Reabilita os botões em caso de erro
+                if (approveBtn) approveBtn.disabled = false;
+                if (rejectBtn) rejectBtn.disabled = false;
+            }
         }
 
         function copyText(elementId) {
