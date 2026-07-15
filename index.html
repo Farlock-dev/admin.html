@@ -164,6 +164,7 @@
         .tool-row button.nerf-btn { background: #e74c3c; color: white; }
         .tool-row button.buff-btn { background: #4CAF50; color: white; }
         .tool-row button.reset-btn { background: #f39c12; color: white; }
+        .tool-row button.check-btn { background: #3498db; color: white; }
         .tool-row label {
             font-size: 12px;
             color: #ccc;
@@ -317,7 +318,7 @@
                 <div class="tool-row">
                     <label>Verificar:</label>
                     <input type="text" id="checkModifierUsername" placeholder="Username do jogador">
-                    <button onclick="checkModifier()">🔍 Verificar</button>
+                    <button onclick="checkModifier()" class="check-btn">🔍 Verificar</button>
                     <button onclick="resetModifier()" class="reset-btn">🔄 Resetar</button>
                 </div>
                 <div id="checkModifierResult" class="tool-result"></div>
@@ -553,7 +554,7 @@
             }
         }
 
-        // ========== VERIFICAR MODIFICADOR ==========
+        // ========== VERIFICAR MODIFICADOR (AGORA FUNCIONA) ==========
         async function checkModifier() {
             const username = document.getElementById('checkModifierUsername').value.trim();
             const resultEl = document.getElementById('checkModifierResult');
@@ -565,32 +566,16 @@
             resultEl.textContent = 'Verificando...';
             resultEl.className = 'tool-result';
             try {
-                // Usa a rota de perfil (admin pode ver qualquer um através do search-txid, 
-                // mas precisamos de uma forma de obter o modificador. Vamos usar a rota de login 
-                // para obter o token e depois o perfil – mas é mais fácil criar uma rota específica.
-                // Como o backend já retorna catchModifier no perfil, podemos fazer a chamada 
-                // usando a API pública de perfil, mas precisamos de autenticação.
-                // Vou usar a mesma lógica: obter o perfil do usuário.
-                const res = await fetch(`${API_URL}/user/profile`, {
+                const res = await fetch(`${API_URL}/admin/user-modifier/${encodeURIComponent(username)}`, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                // Isso retorna o perfil do admin logado. Para obter de outro usuário,
-                // precisamos de uma nova rota. Vou simular uma busca no banco de dados local
-                // usando a rota de search-txid para encontrar o username e depois pegar o modificador
-                // Mas a maneira correta é criar uma rota admin/get-user-modifier/:username
-                // Por enquanto, vou criar uma chamada genérica.
-                // Na verdade, podemos usar a rota de search-txid com um truque: buscar uma transação 
-                // desse usuário e então fazer outra chamada. Melhor criar uma rota rápida.
-                // Para já resolver, vou adicionar uma rota temporária no backend:
-                // GET /admin/user-modifier/:username
-                // Mas como você está cansado, vou usar um método alternativo:
-                // Fazer login como o usuário (não recomendado) ou usar a rota de perfil do próprio usuário.
-                // A melhor solução: adicionar a rota no backend rapidamente.
-                // Vou instruir você a adicionar essa rota no backend, mas para agora, 
-                // vou fazer a verificação usando a API pública de transactions para encontrar o username
-                // e depois usar o endpoint de perfil do admin (que não serve).
-                // Vou simular com um alerta pedindo para adicionar a rota.
-                alert('Para verificar o modificador de outro jogador, adicione a rota:\nGET /admin/user-modifier/:username\nno backend. Retorne { catchModifier }.');
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message);
+                const modifier = data.catchModifier || 0;
+                const percent = (modifier * 100).toFixed(0);
+                const tipo = modifier > 0 ? '🟢 Buff' : modifier < 0 ? '🔴 Nerf' : '⚪ Normal';
+                resultEl.innerHTML = `<strong>${data.username}</strong>: ${tipo} (${percent}%)`;
+                resultEl.className = 'tool-result';
             } catch (e) {
                 resultEl.textContent = 'Erro: ' + e.message;
                 resultEl.className = 'tool-result error';
